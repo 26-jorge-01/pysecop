@@ -1,0 +1,44 @@
+# .github/workflows/tests.yml
+name: Tests & Coverage
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.12" ]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        run: |
+          pip install uv
+
+      - name: Sync deps (core + dev)
+        run: |
+          # Usa el extra 'dev' definido en [project.optional-dependencies]
+          uv sync --extra dev
+
+      - name: Run tests (pytest + coverage según pyproject.toml)
+        run: |
+          # Tu [tool.pytest.ini_options] ya define:
+          # --cov=RuntimeConfig
+          # --cov-report=term-missing
+          # --cov-report=html
+          # --cov-report=xml
+          uv run pytest -m "not asyncio"

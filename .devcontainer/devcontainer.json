@@ -1,0 +1,22 @@
+{
+  "name": "pysecop-starter",
+  "image": "pysecop-starter",
+  "workspaceFolder": "/app",
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/data,target=/app/data,type=bind,consistency=cached"
+  ],
+  "forwardPorts": [8888, 8000, 2222],
+  "containerEnv": {
+    "UV_LINK_MODE": "copy"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "ms-toolsai.jupyter"],
+      "settings": {
+        "python.defaultInterpreterPath": "/app/.venv/bin/python"
+      }
+    }
+  },
+  "postStartCommand": "uv sync"
+}

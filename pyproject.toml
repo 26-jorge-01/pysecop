@@ -1,0 +1,94 @@
+[project]
+name = "pysecop"
+version = "1.0.0"
+description = "Orquestador de consultas sobre SECOP desde el API del portal de datos abiertos."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Jorge Ibanez", email = "jonan0804@gmail.com" }]
+requires-python = ">=3.12"
+
+dependencies = [
+  "pandas==2.1.1",
+  "numpy==1.26.4",
+  "sodapy==2.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build==1.2.2.post1",
+  "ipykernel==6.30.1",
+  "pysecop",
+  "pytest==8.4.2",
+  "pytest-asyncio==1.2.0",
+  "pytest-cov==7.0.0",
+  "python-dotenv==1.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# Esto activa la inclusión automática de los archivos señalados en package-data
+include-package-data = true
+
+# -------------------------------------------------------------------
+# Dile a setuptools que descubra tu paquete directamente desde la raíz
+# -------------------------------------------------------------------
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["pysecop", "pysecop.*"]
+
+# -------------------------------------------------------------------
+# Configuraciones de pruebas
+# -------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+markers = [
+    "asyncio: pruebas asincronas. Por lo general toman mucho tiempo",
+    "usa: pruebas de usa"
+]
+
+# Configuración de cobertura automática
+addopts = """
+--cov=pysecop
+--cov-report=term-missing
+--cov-report=html
+--cov-report=xml
+"""
+
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["pysecop"]
+branch = true
+
+[tool.coverage.report]
+omit = ["tests/*"]
+
+# -------------------------------------------------------------------
+# Incluye tus YAML/JSON de config dentro del wheel
+# -------------------------------------------------------------------
+
+[tool.uv]
+default-groups = []
+
+[tool.uv.sources]
+pysecop = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    ".",
+    ".",
+    ".",
+    ".",
+    ".",
+    ".",
+]
+
+[dependency-groups]
+dev = [
+    "pysecop",
+]
