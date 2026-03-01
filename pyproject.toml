@@ -1,6 +1,6 @@
 [project]
 name = "pysecop"
-version = "1.0.0"
+version = "1.1.0"
 description = "Orquestador de consultas sobre SECOP desde el API del portal de datos abiertos."
 readme = "README.md"
 license = { text = "MIT" }
@@ -80,6 +80,8 @@ pysecop = { workspace = true }
 
 [tool.uv.workspace]
 members = [
+    ".",
+    ".",
     ".",
     ".",
     ".",
