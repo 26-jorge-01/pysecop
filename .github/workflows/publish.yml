@@ -9,13 +9,10 @@ permissions:
   contents: read
 
 jobs:
-  publish:
     name: Build and publish
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # Needed for Trusted Publishing
-    environment:
-      name: pypi
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
