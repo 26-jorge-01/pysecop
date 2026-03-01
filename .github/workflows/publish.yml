@@ -25,5 +25,10 @@ jobs:
       - name: Build
         run: python -m build
 
-      - name: Publish to PyPI (Trusted Publishing)
+      # - name: Publish to PyPI (Trusted Publishing)
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Publish to PyPI (bootstrap)
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
