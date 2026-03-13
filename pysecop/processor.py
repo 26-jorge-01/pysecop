@@ -107,4 +107,11 @@ class DataProcessor:
                 }
                 df[col] = df[col].map(lambda x: mapping.get(x, -1))
 
+        # 5. Enforce full schema consistency
+        # This ensures that even if process_dataset is called on a DF that was modified elsewhere,
+        # it will still have the expected structure.
+        for col in config.columns:
+            if col not in df.columns:
+                df[col] = None
+
         return df

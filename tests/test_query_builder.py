@@ -24,10 +24,10 @@ def test_query_builder_limit_offset():
 def test_query_builder_order():
     qb = QueryBuilder()
     qb.order("col1", "DESC")
-    assert qb.build() == "order col1 DESC"
+    assert qb.build() == "order by col1 DESC"
 
 def test_query_builder_full():
     qb = QueryBuilder()
     qb.select(["a", "b"]).where_in("c", [1]).limit(10).order("a")
-    expected = "select a, b where c in (1) order a ASC limit 10"
+    expected = "select a, b where c in (1) order by a ASC limit 10"
     assert qb.build() == expected

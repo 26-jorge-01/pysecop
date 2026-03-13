@@ -47,7 +47,7 @@ class QueryBuilder:
             parts.append(f"where {' AND '.join(self._where)}")
             
         if self._order:
-            parts.append(f"order {self._order}")
+            parts.append(f"order by {self._order}")
             
         if self._limit:
             parts.append(f"limit {self._limit}")
