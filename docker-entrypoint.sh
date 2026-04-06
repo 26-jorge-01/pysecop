@@ -1,43 +1,42 @@
 #!/usr/bin/env bash
 set -e
 
-echo "[INFO] Iniciando contenedor…"
+# Support for multi-environment GPU detection
+# Ensure this script has POSIX line endings (LF) for Linux compatibility
+
+echo "[INFO] Initializing container..."
 
 GPU_MARKER="/app/.gpu-setup-done"
 
-# Si hay soporte NVIDIA dentro del contenedor (host + --gpus all)
+# Check for NVIDIA support within the container (host + --gpus all)
 if command -v nvidia-smi >/dev/null 2>&1; then
-    echo "[INFO] GPU NVIDIA detectada dentro del contenedor (nvidia-smi disponible)."
+    echo "[INFO] NVIDIA GPU detected inside container (nvidia-smi available)."
 
     if [ ! -f "$GPU_MARKER" ]; then
-        echo "[INFO] Primera vez con GPU: instalando CUDA toolkit y stack ML con soporte GPU…"
+        echo "[INFO] First time GPU setup: installing CUDA toolkit and GPU-enabled ML stack..."
 
-        # Instalamos CUDA toolkit básico desde repos del sistema (no drivers del host).
-        # OJO: esto es pesado; se hace una sola vez por imagen.
+        # Install minimal CUDA toolkit (requires root/sudo within container)
         apt-get update && \
         apt-get install -y --no-install-recommends \
             nvidia-cuda-toolkit && \
-        rm -rf /var/lib/apt/lists/*
+            rm -rf /var/lib/apt/lists/*
 
-        # En este punto PATH ya apunta al venv (.venv/bin)
-        # Instalamos librerías ML con soporte GPU cuando sea posible.
-        # Ajusta según tu stack real.
+        # Use 'pip' for standard GPU dependency installs
+        echo "[INFO] Installing PyTorch with GPU support via pip..."
         pip install --no-cache-dir \
             torch \
             torchvision \
             torchaudio
 
-        # Si quieres, puedes añadir aquí tensorflow-gpu u otros, pero
-        # cuidado con versiones / compatibilidad.
-
         touch "$GPU_MARKER"
-        echo "[INFO] Configuración GPU completada."
+        echo "[INFO] GPU configuration completed."
     else
-        echo "[INFO] Configuración GPU ya realizada previamente. No se reinstala nada."
+        echo "[INFO] GPU already configured. Skipping re-installation."
     fi
 else
-    echo "[INFO] No se detectó GPU (nvidia-smi no disponible). Ejecutando en modo CPU."
+    echo "[INFO] No GPU detected (nvidia-smi not found). Running in CPU mode."
 fi
 
-echo "[INFO] Lanzando comando: $*"
+echo "[INFO] Launching command: $*"
+# Use 'exec' to ensure signals (SIGTERM, etc.) are handled by the process
 exec "$@"

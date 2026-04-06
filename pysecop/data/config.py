@@ -11,6 +11,8 @@ class DatasetConfig:
     url_columns: List[str] = field(default_factory=list)
     text_columns: List[str] = field(default_factory=list)
     categorical_columns: List[str] = field(default_factory=list)
+    numeric_columns: List[str] = field(default_factory=list)
+    boolean_columns: List[str] = field(default_factory=list)
     id_column: str = "uid"  # Default for SECOP I
 
 # SECOP I Contratos
@@ -59,6 +61,17 @@ SECOP_I_CONTRATOS = DatasetConfig(
     categorical_columns=[
         "cumpledecreto248", "incluyebienesdecreto248", "cumple_sentencia_t302", 
         "es_postconflicto", "es_mipyme", "pliegos_tipo"
+    ],
+    numeric_columns=[
+        "anno_cargue_secop", "anno_firma_contrato", "cuantia_proceso", 
+        "plazo_de_ejec_del_contrato", "tiempo_adiciones_en_dias", 
+        "tiempo_adiciones_en_meses", "cuantia_contrato", 
+        "valor_total_de_adiciones", "valor_contrato_con_adiciones", 
+        "id_sub_unidad_ejecutora"
+    ],
+    boolean_columns=[
+        "es_postconflicto", "es_mipyme", "cumpledecreto248", 
+        "incluyebienesdecreto248", "cumple_sentencia_t302"
     ]
 )
 
@@ -111,8 +124,123 @@ SECOP_II_CONTRATOS = DatasetConfig(
         "liquidaci_n", "obligaci_n_ambiental", "obligaciones_postconsumo", 
         "reversion", "espostconflicto", "el_contrato_puede_ser_prorrogado",
         "es_pyme", "habilita_pago_adelantado", "entidad_centralizada"
+    ],
+    numeric_columns=[
+        "nit_entidad", "valor_del_contrato", "valor_de_pago_adelantado", 
+        "valor_facturado", "valor_pendiente_de_pago", "valor_pagado", 
+        "valor_amortizado", "valor_pendiente_de", "valor_pendiente_de_ejecucion", 
+        "saldo_cdp", "saldo_vigencia", "dias_adicionados"
+    ],
+    boolean_columns=[
+        "es_pyme", "habilita_pago_adelantado", "liquidaci_n", 
+        "espostconflicto", "el_contrato_puede_ser_prorrogado"
     ]
 )
+
+# Unified Column Mapping
+# Unified Column Mapping (Standardized on SECOP II Schema)
+# Every conceptually identical field between SECOP I and II is merged here.
+# Columns from SECOP I that are NOT mapped here will still exist in the final matrix!
+COLUMN_MAPPING = {
+    "contracts": {
+        "SECOP_I": {
+            # Core Identifiers
+            "nombre_entidad": "nombre_entidad",
+            "nit_entidad": "nit_de_la_entidad",
+            "departamento": "departamento_entidad",
+            "ciudad": "municipio_entidad",
+            "codigo_entidad": "c_digo_de_la_entidad",
+            "proceso_de_compra": "numero_de_proceso",
+            "id_contrato": "id_adjudicacion",
+            "ultima_actualizacion": "ultima_actualizacion",
+            "urlproceso": "ruta_proceso_en_secop_i",
+            
+            # Provider Info
+            "documento_proveedor": "identificacion_del_contratista",
+            "proveedor_adjudicado": "nom_razon_social_contratista",
+            "tipodocproveedor": "tipo_identifi_del_contratista",
+            
+            # Contract Details
+            "objeto_del_contrato": "objeto_del_contrato_a_la",
+            "descripcion_del_proceso": "detalle_del_objeto_a_contratar",
+            "valor_del_contrato": "valor_contrato_con_adiciones",
+            "modalidad_de_contratacion": "modalidad_de_contratacion",
+            "estado_contrato": "estado_del_proceso",
+            "tipo_de_contrato": "tipo_de_contrato",
+            "duraci_n_del_contrato": "plazo_de_ejec_del_contrato",
+            "dias_adicionados": "tiempo_adiciones_en_dias",
+            
+            # Dates
+            "fecha_de_firma": "fecha_de_firma_del_contrato",
+            "fecha_de_inicio_del_contrato": "fecha_ini_ejec_contrato",
+            "fecha_de_fin_del_contrato": "fecha_fin_ejec_contrato",
+            "fecha_inicio_liquidacion": "fecha_liquidacion",
+            
+            # Representatives & People
+            "nombre_representante_legal": "nombre_del_represen_legal",
+            "identificaci_n_representante_legal": "identific_representante_legal",
+            "g_nero_representante_legal": "sexo_replegal",
+            
+            # Organizational Info
+            "orden": "orden_entidad",
+            
+            # Peace Agreement (Standard names from I)
+            "espostconflicto": "es_postconflicto",
+            "puntos_del_acuerdo": "punto_acuerdo_paz",
+            "pilares_del_acuerdo": "pilar_acuerdo_paz",
+            
+            # Financials (Gray Areas - Mapping by intent)
+            "destino_gasto": "destino_gasto",
+            "es_pyme": "es_mipyme",
+            
+            # --- GRAY AREAS (REVIEW REQUESTED) ---
+            # SECOP II 'codigo_de_categoria_principal' (UNSPSC) vs SECOP I 'nombre_familia'?
+            "codigo_de_categoria_principal": "nombre_familia", # REVIEW REQUESTED
+            
+            # SECOP II 'justificacion_modalidad_de' vs SECOP I 'causal_de_otras_formas_de'?
+            "justificacion_modalidad_de": "causal_de_otras_formas_de", # REVIEW REQUESTED
+            
+            # SECOP II 'referencia_del_contrato' (System ID) vs SECOP I 'numero_de_constancia'?
+            "referencia_del_contrato": "numero_de_constancia", # REVIEW REQUESTED
+        },
+        "SECOP_II": {
+            # Mostly direct mapping to support the search() engine
+            "nombre_entidad": "nombre_entidad",
+            "nit_entidad": "nit_entidad",
+            "departamento": "departamento",
+            "ciudad": "ciudad",
+            "codigo_entidad": "codigo_entidad",
+            "proceso_de_compra": "proceso_de_compra",
+            "id_contrato": "id_contrato",
+            "objeto_del_contrato": "objeto_del_contrato",
+            "descripcion_del_proceso": "descripcion_del_proceso",
+            "valor_del_contrato": "valor_del_contrato",
+            "fecha_de_firma": "fecha_de_firma",
+            "fecha_de_inicio_del_contrato": "fecha_de_inicio_del_contrato",
+            "fecha_de_fin_del_contrato": "fecha_de_fin_del_contrato",
+            "ultima_actualizacion": "ultima_actualizacion",
+            "documento_proveedor": "documento_proveedor",
+            "proveedor_adjudicado": "proveedor_adjudicado",
+            "tipodocproveedor": "tipodocproveedor",
+            "modalidad_de_contratacion": "modalidad_de_contratacion",
+            "estado_contrato": "estado_contrato",
+            "tipo_de_contrato": "tipo_de_contrato",
+            "urlproceso": "urlproceso",
+            "nombre_representante_legal": "nombre_representante_legal",
+            "espostconflicto": "espostconflicto",
+            "puntos_del_acuerdo": "puntos_del_acuerdo",
+            "pilares_del_acuerdo": "pilares_del_acuerdo",
+            "es_pyme": "es_pyme",
+            "destino_gasto": "destino_gasto",
+            "duraci_n_del_contrato": "duraci_n_del_contrato",
+            "dias_adicionados": "dias_adicionados",
+            "identificaci_n_representante_legal": "identificaci_n_representante_legal",
+            "orden": "orden",
+            "rama": "rama",
+            "fecha_inicio_liquidacion": "fecha_inicio_liquidacion"
+        }
+    }
+}
 
 DATASETS = {
     "SECOP_I": SECOP_I_CONTRATOS,

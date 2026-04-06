@@ -1,7 +1,6 @@
 from .client import SecopClient
-from .query_builder import QueryBuilder
-from .config import DATASETS, DatasetConfig
-from .processor import DataProcessor
+from .core import QueryBuilder
+from .data import DATASETS, DatasetConfig, DataProcessor, COLUMN_MAPPING
 
 __version__ = "1.0.0"
 
@@ -10,5 +9,6 @@ __all__ = [
     "QueryBuilder",
     "DATASETS",
     "DatasetConfig",
-    "DataProcessor"
+    "DataProcessor",
+    "COLUMN_MAPPING"
 ]

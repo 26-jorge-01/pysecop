@@ -42,6 +42,10 @@ class QueryBuilder:
         parts = []
         if self._select:
             parts.append(f"select {', '.join(self._select)}")
+        else:
+            # Default to select * if no specific columns are provided
+            # SODA requires a select clause if where/limit are used in a full query string
+            parts.append("select *")
         
         if self._where:
             parts.append(f"where {' AND '.join(self._where)}")

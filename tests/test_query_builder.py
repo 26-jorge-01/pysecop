@@ -1,5 +1,5 @@
 import pytest
-from pysecop.query_builder import QueryBuilder
+from pysecop import QueryBuilder
 
 def test_query_builder_select():
     qb = QueryBuilder()
@@ -9,22 +9,22 @@ def test_query_builder_select():
 def test_query_builder_where_in():
     qb = QueryBuilder()
     qb.where_in("col1", ["val1", 2])
-    assert qb.build() == "where col1 in ('val1', 2)"
+    assert qb.build() == "select * where col1 in ('val1', 2)"
 
 def test_query_builder_where_in_empty():
     qb = QueryBuilder()
     qb.where_in("col1", [])
-    assert qb.build() == ""
+    assert qb.build() == "select *"
 
 def test_query_builder_limit_offset():
     qb = QueryBuilder()
     qb.limit(10).offset(5)
-    assert qb.build() == "limit 10 offset 5"
+    assert qb.build() == "select * limit 10 offset 5"
 
 def test_query_builder_order():
     qb = QueryBuilder()
     qb.order("col1", "DESC")
-    assert qb.build() == "order by col1 DESC"
+    assert qb.build() == "select * order by col1 DESC"
 
 def test_query_builder_full():
     qb = QueryBuilder()

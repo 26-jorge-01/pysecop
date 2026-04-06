@@ -1,11 +1,11 @@
 # Dockerfile (multi-stage)
 
-# ==== Etapa base: depende de pyproject.toml, uv.lock ====
+# ==== Stage 1: Base - dependencies and package core ====
 FROM python:3.12-slim AS base
 
 WORKDIR /app
 
-# Paquetes de sistema mínimos + herramientas (optional)
+# Minimal system packages + tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     git \
@@ -14,38 +14,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pciutils \
     && rm -rf /var/lib/apt/lists/*
 
-# Copia sólo definiciones de deps para aprovechar caché
-COPY pyproject.toml uv.lock* ./
-COPY packages/ ./packages/
+# Copy original source code for development/base stage
+# Using COPY . . is more reliable for dev environments as it catches
+# newly created files/folders automatically.
+COPY . .
 
-# Instala uv + deps (incluye streamlit)
-RUN pip install --no-cache-dir uv && \
-    uv sync
+# Install the package and its dependencies using pip
+RUN pip install --no-cache-dir .
 
-# Uso de venv local para evitar conflictos con el sistema
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Prepara carpeta de datos
+# Prepare data folder
 RUN mkdir -p /app/data
 VOLUME ["/app/data"]
 
-# Copiamos el entrypoint que hará la detección de GPU en runtime
-# COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-# RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# ==== Etapa prod: código + defaults ====
+# ==== Stage 2: Production - complete project ====
 FROM base AS prod
 
-WORKDIR /app
+# Everything is already copied in base for simplicity and consistency
+# but we can add production-specific configurations here if needed.
 
-# Copia todo el código del monorepo
-COPY . .
+# Expose API and SSH ports
+EXPOSE 8000 2222
 
-# Expone puertos de Jupyter, API, SSH y Streamlit
-EXPOSE 8888 8000 2222 8501 8001
+# Ensure entrypoint is executable
+RUN chmod +x /app/docker-entrypoint.sh
 
-# EntryPoint que autoconfigura GPU si existe
-# ENTRYPOINT ["docker-entrypoint.sh"]
+# EntryPoint handles runtime configurations (like GPU detection)
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
-# CMD por defecto (notebook). Tu Makefile podrá sobreescribirlo para Streamlit:
-CMD ["uv", "run", "jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
+# Default CMD: Run tests using pytest
+CMD ["pytest"]

@@ -1,5 +1,5 @@
 # Carpeta local para datos pesados (git-ignored)
-data/
+# data/
 
 # Variables de entorno
 .env

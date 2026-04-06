@@ -22,12 +22,12 @@ qb.select(["documento_proveedor", "valor_del_contrato", "nombre_entidad"]) \
 
 ## 2. Market Intelligence & Supplier Graph Analysis
 
-**The Problem**: Government entities struggle to identify if they are over-reliant on a single supplier or if "shell companies" are winning multiple contracts under different names.
+**The Problem**: Government entities struggle to identify if they are over-reliant on a single supplier or if "shell companies" are winning multiple contracts under different names across different government platforms (SECOP I vs. SECOP II).
 
 **The pysecop Solution**:
-By fetching contracts from both SECOP I and II using `get_contracts_by_ids` and processing them into a unified format with `DataProcessor`, you can build a **Supplier Interaction Graph**. Node attributes would include "Average Contract Value" and edges would represent shared contracts between entities and suppliers.
+By fetching contracts from both SECOP I and II using the unified `search()` method, `pysecop` provides a single, normalized view of a supplier's entire history. The `source` column allows for tracking how suppliers migrated from the older SECOP I to the modern SECOP II system. This data can be directly fed into a **Supplier Interaction Graph**. Node attributes would include "Total Contract Value" and edges would represent links between entities and suppliers across both government sources.
 
-**Portfolio takeaway**: Showcases skills in **Network Theory**, **Entity Resolution**, and **Multi-source Data Integration**.
+**Portfolio takeaway**: Showcases skills in **Network Theory**, **Entity Resolution**, and **Multi-source Data Integration** using a **Unified Schema**.
 
 ---
 

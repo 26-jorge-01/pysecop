@@ -12,21 +12,34 @@ pip install -e .
 
 ## Basic Usage
 
-### Fetching Contracts by Individual IDs
-The most common use case is looking up specific contracts or providers.
+### Unified Search across SECOP I & II
+The primary way to interact with the package is through the `search()` method, which unifies results from both SECOP versions into a single DataFrame.
 
 ```python
 from pysecop import SecopClient
 
 client = SecopClient()
-results = client.get_contracts_by_ids(
-    ids=["901000000", "801234567"], 
-    id_type="documento_proveedor"
+
+# Search using unified column names
+df = client.search(
+    nit_entidad="900000000-1",
+    limit=500
 )
 
-# Returns a dict with DataFrames for SECOP_I and SECOP_II
-df_i = results["SECOP_I"]
-df_ii = results["SECOP_II"]
+# The result is a consolidated DataFrame
+# Each row has a 'source' column ("SECOP I" or "SECOP II")
+print(df["source"].value_counts())
+```
+
+### Fetching Contracts by ID
+For backwards compatibility and specific lookups, `get_contracts_by_ids()` is also available but now returns a consolidated DataFrame instead of a dictionary.
+
+```python
+# Returns a single DataFrame with combined results
+df = client.get_contracts_by_ids(
+    ids=["901000000", "801234567"], 
+    id_type="id_contratista"
+)
 ```
 
 ## Advanced Querying with `QueryBuilder`

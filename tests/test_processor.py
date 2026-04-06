@@ -1,8 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
-from pysecop.processor import DataProcessor
-from pysecop.config import DatasetConfig
+from pysecop import DataProcessor, DatasetConfig
 
 def test_clean_url():
     # Standard format

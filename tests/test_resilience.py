@@ -1,8 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 import pandas as pd
-from pysecop.client import SecopClient
-from pysecop.config import DatasetConfig, DATASETS
+from pysecop import SecopClient, DatasetConfig, DATASETS, QueryBuilder
 
 class TestSchemaResilience(unittest.TestCase):
     def setUp(self):
@@ -33,7 +32,6 @@ class TestSchemaResilience(unittest.TestCase):
         self.client.client.get.return_value = [{'col1': 'val1', 'col2': 'val2'}]
 
         # Try to fetch using a query that expects col1, col2, and col3
-        from pysecop.query_builder import QueryBuilder
         qb = QueryBuilder().select(["col1", "col2", "col3"])
         
         df = self.client.fetch("TEST", qb)
@@ -63,7 +61,6 @@ class TestSchemaResilience(unittest.TestCase):
         }
         self.client.client.get.return_value = [{'col1': 'val1'}]
 
-        from pysecop.query_builder import QueryBuilder
         qb = QueryBuilder().select(["col1", "col2"])
         
         self.client.fetch("TEST", qb)

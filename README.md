@@ -28,22 +28,24 @@ Public procurement data is the foundation of transparency and market intelligenc
 pip install pysecop
 ```
 
-### Basic Fetching
+### Unified Search (SECOP I & II)
+
+The most powerful feature of `pysecop` is the ability to search across both SECOP I and SECOP II with a single command and get a single, consolidated DataFrame. The engine includes **Intelligent Input Resilience**, allowing you to provide formatted IDs (like NITs with dashes) that are automatically cleaned for the backend.
 
 ```python
-from pysecop import SecopClient, QueryBuilder
+from pysecop import SecopClient
 
 client = SecopClient()
-qb = QueryBuilder()
 
-# Find the top 5 largest contracts in SECOP II
-qb.select(["id_contrato", "valor_del_contrato", "nombre_entidad"]) \
-  .order("valor_del_contrato", "DESC") \
-  .limit(5)
+# Search by NIT across both datasets simultaneously (automatic ID cleaning)
+df = client.search(nit_entidad="900000000-1")
 
-df = client.fetch("SECOP_II", qb)
-print(df.head())
+# The result is a single, consolidated "Matrix-in-Blocks" DataFrame
+print(df[["source", "nombre_entidad", "valor_del_contrato", "estado_contrato"]].head())
 ```
+
+> [!TIP]
+> Use standardized column names like `documento_proveedor`, `nit_entidad`, and `valor_del_contrato` to search across all data regardless of the original government field names.
 
 ---
 

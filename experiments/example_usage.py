@@ -1,39 +1,57 @@
-from pysecop import SecopClient, QueryBuilder, DATASETS, DataProcessor
+from pysecop import SecopClient, DATASETS
 import pandas as pd
 
 def main():
     # 1. Initialize Client
     client = SecopClient()
 
-    # 2. Define search parameters (e.g., specific provider documents)
-    provider_ids = ["901000000", "800000000"] # Example IDs
+    # 2. Unified Search across SECOP I & II
+    # Jackass-Proof: You can now provide formatted NITs (with dashes/dots) 
+    # and they will be automatically cleaned for numeric fields in SECOP II!
+    provider_nit = "899999027" 
     
-    # 3. Use high-level method to fetch from both SECOP I and II
-    print("Fetching contracts by provider IDs...")
-    raw_results = client.get_contracts_by_ids(provider_ids, id_type="documento_proveedor")
+    print(f"Executing Unified Search for NIT: {provider_nit}...")
+    # search() automatically:
+    # - Fetches from both SECOP version
+    # - Consolidates results into a single DataFrame
+    # - Synchronizes column names (Unified Schema)
+    # - Standardizes dates, URLs, and categorical fields
+    # - Adds a 'source' column
+    df = client.search(nit_entidad=provider_nit, limit=100)
 
-    # 4. Process and clean results automatically using the config
-    processed_results = {}
-    for dataset_key, df in raw_results.items():
-        if not df.empty:
-            print(f"Processing {dataset_key}...")
-            config = DATASETS[dataset_key]
-            processed_results[dataset_key] = DataProcessor.process_dataset(df, config)
-            print(f"Cleaned {len(processed_results[dataset_key])} records for {dataset_key}.")
-            print(processed_results[dataset_key].head(2))
+    if not df.empty:
+        print(f"\nSuccessfully retrieved {len(df)} consolidated records.")
+        print("\nSummary by Source:")
+        print(df["source"].value_counts())
+        
+        print(f"\nFinal Matrix Columns: {len(df.columns)}")
+        
+        # Verify specific SECOP I columns that the user asked about
+        special_cols = ['cumple_sentencia_t302', 'uid', 'anno_cargue_secop']
+        found_special = [c for c in special_cols if c in df.columns]
+        print(f"Verified Source-Specific Columns: {found_special}")
 
-    # Example of a custom query using QueryBuilder
-    print("\nExecuting custom query for SECOP II...")
-    qb = QueryBuilder()
-    qb.select(["id_contrato", "valor_del_contrato", "nombre_entidad"])
-    qb.where_custom("valor_del_contrato > 100000000")
-    qb.limit(5)
+        print("\nTop 5 Unified results (Displaying first 5 core columns):")
+        core_cols = ["source", "nombre_entidad", "valor_del_contrato", "fecha_de_firma", "estado_contrato"]
+        # Ensure we only try to display columns that were actually retrieved
+        display_cols = [c for c in core_cols if c in df.columns]
+        print(df[display_cols].head())
+        
+        # Tip for the user
+        if 'cumple_sentencia_t302' in df.columns:
+            print(f"\nSample data for 'cumple_sentencia_t302' (from SECOP I rows):")
+            print(df[df['source'] == 'SECOP I']['cumple_sentencia_t302'].head())
+    else:
+        print("No records found for the given criteria.")
+
+    # 3. Targeted searching by ID
+    print("\nSearching by specific Contract ID...")
+    # This also uses the unified engine under the hood
+    contract_df = client.get_contracts_by_ids(["CO1.PNN.123456"], id_type="numero_contrato")
     
-    custom_df = client.fetch("SECOP_II", qb)
-    if not custom_df.empty:
-        clean_custom_df = DataProcessor.process_dataset(custom_df, DATASETS["SECOP_II"])
-        print("Custom Query Results (Cleaned):")
-        print(clean_custom_df)
+    if not contract_df.empty:
+        print(f"Found contract in source: {contract_df['source'].iloc[0]}")
+        print(f"Contract Object: {contract_df['objeto_contrato'].iloc[0]}")
 
 if __name__ == "__main__":
     main()

@@ -5,7 +5,7 @@ import gc
 import warnings
 from typing import List, Optional, Any
 from .config import DatasetConfig
-from .logging_setup import get_logger
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -77,41 +77,68 @@ class DataProcessor:
 
         df = df.copy()
 
+        # Helper to get column name if it exists (either original or unified)
+        def get_col(original_col, unified_name=None):
+            if original_col in df.columns:
+                return original_col
+            if unified_name and unified_name in df.columns:
+                return unified_name
+            return None
+
         # 1. Clean URLs
         for col in config.url_columns:
-            if col in df.columns:
-                df[col] = df[col].astype(str).apply(cls.clean_url)
+            target = get_col(col, "url_proceso")
+            if target:
+                df[target] = df[target].astype(str).apply(cls.clean_url)
 
         # 2. Clean Dates
+        unified_date_map = {
+            "fecha_de_cargue_en_el_secop": "fecha_firma",
+            "fecha_de_firma_del_contrato": "fecha_firma",
+            "fecha_ini_ejec_contrato": "fecha_inicio",
+            "fecha_fin_ejec_contrato": "fecha_fin",
+            "fecha_de_firma": "fecha_firma",
+            "fecha_de_inicio_del_contrato": "fecha_inicio",
+            "fecha_de_fin_del_contrato": "fecha_fin",
+            "ultima_actualizacion": "ultima_actualizacion"
+        }
         for col in config.date_columns:
-            if col in df.columns:
-                df[col] = df[col].astype(str).apply(cls.clean_date_string)
+            target = get_col(col, unified_date_map.get(col))
+            if target:
+                df[target] = df[target].astype(str).apply(cls.clean_date_string)
                 # Handle possible empty strings before to_datetime
-                df[col] = df[col].replace("", None)
-                df[col] = pd.to_datetime(df[col], errors='coerce')
+                df[target] = df[target].replace("", None)
+                df[target] = pd.to_datetime(df[target], errors='coerce')
 
 
         # 3. Basic Text Cleaning (Lowering)
         for col in config.text_columns:
             if col in df.columns:
                 df[col] = df[col].astype(str).str.lower()
-                # Additional regex-based cleaning from CleanData.py could be added here if needed
 
         # 4. Binary/Categorical encoding
+        unified_cat_map = {
+            "es_postconflicto": "es_postconflicto",
+            "espostconflicto": "es_postconflicto",
+            "es_mipyme": "es_pyme",
+            "es_pyme": "es_pyme"
+        }
         for col in config.categorical_columns:
-            if col in df.columns:
-                df[col] = df[col].astype(str).str.lower()
+            target = get_col(col, unified_cat_map.get(col))
+            if target:
+                df[target] = df[target].astype(str).str.lower()
                 mapping = {
                     'si': 1, 'no': 0, 'válido': 1, 'no válido': 0, 
                     'true': 1, 'false': 0, 'nan': -1, 'no definido': -1
                 }
-                df[col] = df[col].map(lambda x: mapping.get(x, -1))
+                df[target] = df[target].map(lambda x: mapping.get(x, -1))
 
-        # 5. Enforce full schema consistency
-        # This ensures that even if process_dataset is called on a DF that was modified elsewhere,
-        # it will still have the expected structure.
+        # 5. Enforce full schema consistency for original columns if they should be there
         for col in config.columns:
             if col not in df.columns:
+                # Only add if it's not present as a unified column
+                # This check is a bit complex, but for simplicity we'll just ensure the col exists
+                # if normalization hasn't happened yet.
                 df[col] = None
 
         return df
