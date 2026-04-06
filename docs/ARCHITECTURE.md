@@ -28,7 +28,7 @@ graph TD
     A[User Request] -->|Parameters| B[SecopClient]
     B -->|Normalize| C[SmartNormalizer]
     C -->|Query Building| D[QueryBuilder]
-    D -->|Request| E[SODA API]
+    D -->|Request| E[SOCRATA API]
     E -->|Raw Response| F[DataFrame]
     F -->|Homologation| G[DataProcessor]
     G -->|Matrix Concat| H[Consolidated Output]
