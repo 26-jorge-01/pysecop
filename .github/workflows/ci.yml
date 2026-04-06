@@ -35,8 +35,8 @@ jobs:
         echo "$env:USERPROFILE\.cargo\bin" >> $env:GITHUB_PATH
       if: runner.os == 'Windows'
 
-    - name: Install dependencies
-      run: uv sync
+    - name: Install dependencies (with dev)
+      run: uv sync --extra dev
 
     - name: Run tests
       run: uv run pytest

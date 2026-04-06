@@ -37,7 +37,7 @@ jobs:
       - name: Run tests (pytest + coverage según pyproject.toml)
         run: |
           # Tu [tool.pytest.ini_options] ya define:
-          # --cov=RuntimeConfig
+          # --cov=pysecop
           # --cov-report=term-missing
           # --cov-report=html
           # --cov-report=xml
