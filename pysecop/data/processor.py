@@ -15,31 +15,22 @@ class DataProcessor:
     """
     
     @staticmethod
-    def clean_url(url: str) -> str:
+    def clean_url(url: Any) -> str:
         """
         Extracts a clean URL from potentially messy JSON strings or raw text.
         """
         if not isinstance(url, str) or url.lower() == 'nan' or not url.strip():
             return ""
         
-        # 1. Try to extract URL using regex if it's wrapped in JSON-like structure
-        # Matches content between quotes that looks like a URL
+        # Consistent with vectorized regex
         url_match = re.search(r'https?://[^\s\'"{}?]+', url)
         if url_match:
             return url_match.group(0).rstrip('/')
 
-        # 2. Fallback to basic string cleaning if regex fails
-        url = url.strip()
-        for char in ["'", '"', '{', '}', ' ']:
-            url = url.replace(char, "")
-        
-        # Remove known Socrata fragments if they persist
-        url = url.replace("url:", "").replace("?numconstancia=", "")
-        
-        return url.rstrip('/')
+        return ""
 
     @staticmethod
-    def clean_date_string(date: str) -> str:
+    def clean_date_string(date: Any) -> str:
         """
         Normalizes various Socrata date formats to YYYY-MM-DD.
         """
@@ -48,12 +39,9 @@ class DataProcessor:
         
         date = date.strip()
         
-        # Handle formats like "2023-01-01T00:00:00.000"
-        if 'T' in date:
-            date = date.split('T')[0]
-            
-        # Handle formats like "01/01/2023 12:00:00 AM"
-        date = date.replace('12:00:00 AM', '').replace('12:00:00 PM', '').strip()
+        # Consistent with vectorized replace logic
+        date = re.sub(r'T.*', '', date)
+        date = re.sub(r' 12:00:00 (AM|PM)', '', date)
         
         return date
 
