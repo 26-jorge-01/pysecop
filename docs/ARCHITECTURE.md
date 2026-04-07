@@ -1,4 +1,4 @@
-# Architecture Deep Dive: pysecop 1.2.0
+# Architecture Deep Dive: pysecop 1.2.2
 
 `pysecop` is designed as a high-performance orchestration layer between Python data stacks (Pandas/Numpy) and the Socrata (SODA) Open Data API. 
 

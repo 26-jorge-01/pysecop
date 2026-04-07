@@ -44,8 +44,20 @@ df = client.search(nit_entidad="900000000-1")
 print(df[["source", "nombre_entidad", "valor_del_contrato", "estado_contrato"]].head())
 ```
 
+### Parallel Ingestion & Staggered Offsets (v1.2.1+)
+
+For high-throughput pipelines (e.g., using **Dagster** or **Airflow**), `pysecop` now supports staggered offsets and automatic rate limit resilience. You can slice the 20M+ historical record matrix across multiple threads:
+
+```python
+# Thread 1: Process first 50k
+df1 = client.search(limit=50000, offset=0)
+
+# Thread 2: Process next 50k (in parallel)
+df2 = client.search(limit=50000, offset=50000)
+```
+
 > [!TIP]
-> Use standardized column names like `documento_proveedor`, `nit_entidad`, and `valor_del_contrato` to search across all data regardless of the original government field names.
+> **Automatic Resilience**: Version 1.2.1+ includes internal exponential backoff for `429 Too Many Requests` status codes, allowing your ingestion workers to self-throttle without failing the pipeline.
 
 ---
 

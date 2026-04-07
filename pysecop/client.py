@@ -1,4 +1,5 @@
 import pandas as pd
+import time
 from sodapy import Socrata
 from typing import List, Dict, Any, Optional, Union
 from .data import DATASETS, DEFAULT_DOMAIN, DatasetConfig, DataProcessor
@@ -70,7 +71,23 @@ class SecopClient:
         logger.info(f"Fetching from {config.name} ({config.id})...")
         logger.debug(f"Query: {soql_query}")
 
-        results = self.client.get(config.id, query=soql_query, content_type="json")
+        # Rate Limit Resilience: Exponential Backoff for 429
+        max_retries = 3
+        backoff = 1.0
+        results = []
+        for i in range(max_retries + 1):
+            try:
+                results = self.client.get(config.id, query=soql_query, content_type="json")
+                break
+            except Exception as e:
+                # Check for 429 status code in requests exception
+                if hasattr(e, 'response') and getattr(e.response, 'status_code', None) == 429 and i < max_retries:
+                    logger.warning(f"Rate limited (429). Retrying in {backoff}s... ({i+1}/{max_retries})")
+                    time.sleep(backoff)
+                    backoff *= 2.0
+                else:
+                    raise
+        
         df = pd.DataFrame.from_dict(results)
         
         # Ensure all expected columns are present (filled with None/NaN if missing)
@@ -93,12 +110,13 @@ class SecopClient:
             
         return df
 
-    def search(self, datasets: List[str] = ["SECOP_I", "SECOP_II"], limit: int = 1000, resource_type: str = "contracts", **kwargs) -> pd.DataFrame:
+    def search(self, datasets: List[str] = ["SECOP_I", "SECOP_II"], limit: int = 1000, offset: int = 0, resource_type: str = "contracts", **kwargs) -> pd.DataFrame:
         """
         Generalized search across multiple datasets using unified column names.
         
         :param datasets: List of dataset keys to search in (e.g., ["SECOP_I", "SECOP_II"])
         :param limit: Maximum number of records per dataset
+        :param offset: Pagination offset for the search results
         :param resource_type: Type of resource being searched (e.g., "contracts")
         :param kwargs: Search filters using unified or original column names
         """
@@ -127,6 +145,8 @@ class SecopClient:
                     qb.where_custom(f"{col} = {normalized_val}")
             
             qb.limit(limit)
+            if offset > 0:
+                qb.offset(offset)
             
             try:
                 df = self.fetch(dataset_key, qb)

@@ -1,3 +1,3 @@
-from .helpers import normalize_dataframe, get_search_filters, consolidate_dataframes
+from .helpers import normalize_dataframe, get_search_filters, consolidate_dataframes, get_unified_columns
 from .logging import get_logger
 from .normalizer import SmartNormalizer

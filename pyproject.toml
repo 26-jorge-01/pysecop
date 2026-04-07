@@ -1,6 +1,6 @@
 [project]
 name = "pysecop"
-version = "1.2.1"
+version = "1.2.2"
 description = "Orquestador de consultas sobre SECOP desde el API del portal de datos abiertos."
 readme = "README.md"
 license = { text = "MIT" }

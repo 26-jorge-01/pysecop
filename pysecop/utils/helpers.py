@@ -19,19 +19,41 @@ def get_reverse_mapping(dataset_key: str, resource_type: str = "contracts") -> D
     dataset_mapping = resource_mapping.get(dataset_key, {})
     return {v: k for k, v in dataset_mapping.items()}
 
+def get_unified_columns(resource_type: str = "contracts") -> List[str]:
+    """
+    Get all unique unified column names for a given resource type across all datasets.
+    """
+    resource_mapping = COLUMN_MAPPING.get(resource_type, {})
+    unified_cols = set()
+    for dataset_mapping in resource_mapping.values():
+        unified_cols.update(dataset_mapping.keys())
+    return sorted(list(unified_cols))
+
 def normalize_dataframe(df: pd.DataFrame, dataset_key: str, resource_type: str = "contracts") -> pd.DataFrame:
     """
     Rename columns in a DataFrame from their original names to unified names.
-    Columns that are not in the mapping are left as is.
+    Columns that are not in the mapping are left as is (Zero-Loss Sparse Matrix).
+    Ensures all unified columns are present even if filled with None.
     """
     if df.empty:
-        return df
+        # Still return a DF with the unified schema
+        unified_cols = get_unified_columns(resource_type)
+        return pd.DataFrame(columns=unified_cols)
     
     reverse_map = get_reverse_mapping(dataset_key, resource_type)
     # Only rename columns that exist in the DataFrame
     rename_cols = {old: new for old, new in reverse_map.items() if old in df.columns}
     
-    return df.rename(columns=rename_cols)
+    df = df.rename(columns=rename_cols)
+    
+    # Enforce full unified schema consistency
+    # This prevents Postgres schema mismatch errors during parallel ingestion
+    unified_cols = get_unified_columns(resource_type)
+    for col in unified_cols:
+        if col not in df.columns:
+            df[col] = None
+            
+    return df
 
 def get_search_filters(dataset_key: str, resource_type: str = "contracts", **kwargs) -> Dict[str, Any]:
     """
