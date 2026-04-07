@@ -6,6 +6,9 @@ from .data import DATASETS, DEFAULT_DOMAIN, DatasetConfig, DataProcessor
 from .core import QueryBuilder
 from .utils import get_logger, normalize_dataframe, get_search_filters, consolidate_dataframes
 from .utils.normalizer import SmartNormalizer
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
 
 logger = get_logger(__name__)
 
@@ -17,6 +20,8 @@ class SecopClient:
         """
         self.client = Socrata(DEFAULT_DOMAIN, app_token)
         self._column_cache: Dict[str, List[str]] = {}
+        self._backoff_lock = threading.Lock()
+        self._next_request_time = 0.0
 
     def get_available_columns(self, dataset_id: str) -> List[str]:
         """
@@ -71,20 +76,34 @@ class SecopClient:
         logger.info(f"Fetching from {config.name} ({config.id})...")
         logger.debug(f"Query: {soql_query}")
 
-        # Rate Limit Resilience: Exponential Backoff for 429
-        max_retries = 3
-        backoff = 1.0
+        # Rate Limit Resilience: Exponential Backoff for 429 (Thread-Safe)
+        max_retries = 5 # Increased for parallel environment
+        initial_backoff = 2.0
         results = []
+        
         for i in range(max_retries + 1):
+            # Check if we are currently backed off
+            wait_time = self._next_request_time - time.time()
+            if wait_time > 0:
+                time.sleep(wait_time)
+
             try:
                 results = self.client.get(config.id, query=soql_query, content_type="json")
                 break
             except Exception as e:
-                # Check for 429 status code in requests exception
-                if hasattr(e, 'response') and getattr(e.response, 'status_code', None) == 429 and i < max_retries:
-                    logger.warning(f"Rate limited (429). Retrying in {backoff}s... ({i+1}/{max_retries})")
-                    time.sleep(backoff)
-                    backoff *= 2.0
+                is_429 = hasattr(e, 'response') and getattr(e.response, 'status_code', None) == 429
+                if is_429 and i < max_retries:
+                    with self._backoff_lock:
+                        # Only increase backoff if another thread hasn't already done it
+                        if self._next_request_time <= time.time():
+                            current_backoff = initial_backoff * (2 ** i)
+                            self._next_request_time = time.time() + current_backoff
+                            logger.warning(f"Rate limited (429). Global backoff: {current_backoff}s. ({i+1}/{max_retries})")
+                        else:
+                            logger.debug("Rate limited (429). Waiting for existing backoff...")
+                    
+                    # Small jitter to avoid synchronized retries
+                    time.sleep(0.1 * (i + 1)) 
                 else:
                     raise
         
@@ -110,61 +129,93 @@ class SecopClient:
             
         return df
 
-    def search(self, datasets: List[str] = ["SECOP_I", "SECOP_II"], limit: int = 1000, offset: int = 0, resource_type: str = "contracts", **kwargs) -> pd.DataFrame:
+    def search(self, datasets: List[str] = ["SECOP_I", "SECOP_II"], limit: int = 1000, offset: int = 0, resource_type: str = "contracts", concurrency: Optional[int] = None, **kwargs) -> pd.DataFrame:
         """
         Generalized search across multiple datasets using unified column names.
+        Supports high-throughput parallel fetching using internal slicing.
         
         :param datasets: List of dataset keys to search in (e.g., ["SECOP_I", "SECOP_II"])
         :param limit: Maximum number of records per dataset
         :param offset: Pagination offset for the search results
         :param resource_type: Type of resource being searched (e.g., "contracts")
+        :param concurrency: Number of parallel workers. If None, auto-calculated based on limit.
         :param kwargs: Search filters using unified or original column names
         """
+        # Automatic concurrency management
+        # If limit is large (>50,000), we slice it.
+        # Socrata max limit per request is usually 50,000.
+        SLICE_SIZE = 50000
+        
+        if concurrency is None:
+            if limit > SLICE_SIZE:
+                concurrency = min(8, (limit // SLICE_SIZE) + 1)
+            else:
+                concurrency = 1
+
         all_dfs = []
-        for dataset_key in datasets:
-            config = DATASETS.get(dataset_key)
-            if not config:
-                logger.warning(f"Dataset {dataset_key} not found in configuration.")
-                continue
+        
+        # We use a ThreadPoolExecutor to handle parallel fetching
+        # We need to process each dataset, and if concurrency > 1, slice the work for that dataset.
+        with ThreadPoolExecutor(max_workers=max(1, concurrency)) as executor:
+            future_to_task = {}
             
-            qb = QueryBuilder()
-            # To achieve the 'Matrix-in-Blocks' consolidation, we fetch all columns
-            # Mapped ones will be unified, and unique ones will be preserved as sparse blocks.
-            qb.select([])
-            
-            # Map search filters to original names
-            filters = get_search_filters(dataset_key, resource_type=resource_type, **kwargs)
-            for col, val in filters.items():
-                if isinstance(val, list):
-                    # Smart normalization for IN clauses
-                    normalized_list = SmartNormalizer.normalize_list(val, col, config)
-                    qb.where_custom(f"{col} in {normalized_list}")
-                else:
-                    # Smart normalization for single equality clauses
-                    normalized_val = SmartNormalizer.normalize_value(val, col, config)
-                    qb.where_custom(f"{col} = {normalized_val}")
-            
-            qb.limit(limit)
-            if offset > 0:
-                qb.offset(offset)
-            
-            try:
-                df = self.fetch(dataset_key, qb)
-                if not df.empty:
-                    # Process with DataProcessor (handles dates, urls, etc.)
-                    df = DataProcessor.process_dataset(df, config)
-                    # Add source mark
-                    df['source'] = dataset_key.replace('_', ' ')
-                    # Normalize to unified columns
-                    df = normalize_dataframe(df, dataset_key, resource_type=resource_type)
-                    all_dfs.append(df)
-            except Exception as e:
-                logger.error(f"Error searching in {dataset_key}: {e}")
+            for dataset_key in datasets:
+                config = DATASETS.get(dataset_key)
+                if not config:
+                    logger.warning(f"Dataset {dataset_key} not found in configuration.")
+                    continue
+                
+                # Partition the work for this dataset
+                num_slices = max(1, (limit + SLICE_SIZE - 1) // SLICE_SIZE) if concurrency > 1 else 1
+                for i in range(num_slices):
+                    current_slice_offset = offset + (i * SLICE_SIZE)
+                    current_slice_limit = min(SLICE_SIZE, limit - (i * SLICE_SIZE))
+                    
+                    if current_slice_limit <= 0:
+                        break
+                        
+                    future = executor.submit(self._fetch_and_process_slice, dataset_key, config, current_slice_limit, current_slice_offset, resource_type, **kwargs)
+                    future_to_task[future] = (dataset_key, current_slice_offset)
+
+            for future in as_completed(future_to_task):
+                dataset_key, slice_offset = future_to_task[future]
+                try:
+                    df = future.result()
+                    if not df.empty:
+                        all_dfs.append(df)
+                except Exception as e:
+                    logger.error(f"Error fetching slice {slice_offset} for {dataset_key}: {e}")
 
         if not all_dfs:
             return pd.DataFrame()
             
         return consolidate_dataframes(all_dfs)
+
+    def _fetch_and_process_slice(self, dataset_key: str, config: Any, limit: int, offset: int, resource_type: str, **kwargs) -> pd.DataFrame:
+        """Helper for parallel fetching of slices."""
+        qb = QueryBuilder()
+        qb.select([]) # Matrix-in-Blocks strategy: fetch all
+        
+        # Map search filters to original names
+        filters = get_search_filters(dataset_key, resource_type=resource_type, **kwargs)
+        for col, val in filters.items():
+            if isinstance(val, list):
+                normalized_list = SmartNormalizer.normalize_list(val, col, config)
+                qb.where_custom(f"{col} in {normalized_list}")
+            else:
+                normalized_val = SmartNormalizer.normalize_value(val, col, config)
+                qb.where_custom(f"{col} = {normalized_val}")
+        
+        qb.limit(limit)
+        if offset > 0:
+            qb.offset(offset)
+            
+        df = self.fetch(dataset_key, qb)
+        if not df.empty:
+            df = DataProcessor.process_dataset(df, config)
+            df['source'] = dataset_key.replace('_', ' ')
+            df = normalize_dataframe(df, dataset_key, resource_type=resource_type)
+        return df
 
     def get_contracts_by_ids(self, ids: List[str], id_type: str = "id_contratista", limit: int = 10000) -> pd.DataFrame:
         """

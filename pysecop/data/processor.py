@@ -89,7 +89,9 @@ class DataProcessor:
         for col in config.url_columns:
             target = get_col(col, "url_proceso")
             if target:
-                df[target] = df[target].astype(str).apply(cls.clean_url)
+                # Vectorized URL extraction
+                df[target] = df[target].astype(str).str.extract(r'(https?://[^\s\'"{}?]+)', expand=False).str.rstrip('/')
+                df[target] = df[target].fillna("")
 
         # 2. Clean Dates
         unified_date_map = {
@@ -105,10 +107,13 @@ class DataProcessor:
         for col in config.date_columns:
             target = get_col(col, unified_date_map.get(col))
             if target:
-                df[target] = df[target].astype(str).apply(cls.clean_date_string)
-                # Handle possible empty strings before to_datetime
-                df[target] = df[target].replace("", None)
-                df[target] = pd.to_datetime(df[target], errors='coerce')
+                # Vectorized date cleaning and parsing
+                # Step 1: Basic string cleaning
+                temp_date = df[target].astype(str).str.strip().str.replace('T.*', '', regex=True)
+                temp_date = temp_date.str.replace(' 12:00:00 (AM|PM)', '', regex=True)
+                
+                # Step 2: Parse with pandas (vectorized)
+                df[target] = pd.to_datetime(temp_date, errors='coerce')
 
 
         # 3. Basic Text Cleaning (Lowering)
@@ -131,7 +136,7 @@ class DataProcessor:
                     'si': 1, 'no': 0, 'válido': 1, 'no válido': 0, 
                     'true': 1, 'false': 0, 'nan': -1, 'no definido': -1
                 }
-                df[target] = df[target].map(lambda x: mapping.get(x, -1))
+                df[target] = df[target].map(mapping).fillna(-1).astype(int)
 
         # 5. Enforce full schema consistency for original columns if they should be there
         for col in config.columns:

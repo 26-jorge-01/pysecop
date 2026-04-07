@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-04-07
+
+### Added
+- **Native Parallel Slicing**: `SecopClient.search()` now automatically partitions large requests into concurrent thread-pool workers.
+- **Auto-Concurrency Management**: Intelligent calculation of optimal parallel workers based on request limits.
+- **Shared-State Global Backoff**: Thread-safe rate limiting that synchronizes pauses across all concurrent workers when hitting 429 status codes.
+
+### Changed
+- **Vectorized Data Normalization**: Completely refactored `DataProcessor` to use high-performance Pandas/Numpy vector operations instead of `.apply()` loops.
+- **Improved Type Coalescing**: Enhanced boolean and date handling for massive dataframes.
+
 ## [1.2.2] - 2026-04-06
 
 ### Added
