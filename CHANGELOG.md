@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-04-07
+### Fixed
+- **Parallel Ingestion Redundancy**: Disabled internal slicing for CSV requests. This bypasses a SODA API limitation where offsets are occasionally ignored in complex SoQL `$query` strings, eliminating the 4x data duplication encountered during high-speed syncs.
+- **Robust CSV Data Handling**: Enhanced the CSV parser to correctly handle `sodapy` iterators, ensuring stable list-to-dataframe conversion for large-scale data transfers.
+- **Automatic Column Homogenization**: Improved the logic to ensure consistent column ordering and schema resilience even when the API returns sparse CSV result sets.
+- **Extended Stability**: Increased the default timeout to **120 seconds** to guarantee successful completion of the largest historical data slices.
+
 ## [1.3.2] - 2026-04-07
 ### Added
 - **SoQL Operator Support**: Search filters now support operators like `>`, `<`, `>=`, `<=`, and `!=` in unified column names.
