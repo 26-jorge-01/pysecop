@@ -117,13 +117,18 @@ class SecopClient:
                     raise
         
         if content_type == "csv":
-            # sodapy parses CSV into a list of lists automatically
-            if isinstance(results, list) and len(results) > 0:
-                df = pd.DataFrame(results[1:], columns=results[0])
-            elif isinstance(results, str):
-                df = pd.read_csv(io.StringIO(results))
+            # sodapy returns a csv.reader iterator for content_type="csv"
+            # We must convert to list to check length and extract headers
+            csv_data = list(results) if not isinstance(results, (str, pd.DataFrame)) else results
+            
+            if isinstance(csv_data, list) and len(csv_data) > 0:
+                # SODA CSV: results[0] is the header, results[1:] is the data
+                df = pd.DataFrame(csv_data[1:], columns=csv_data[0])
+            elif isinstance(csv_data, str):
+                import io
+                df = pd.read_csv(io.StringIO(csv_data))
             else:
-                df = pd.DataFrame(results)
+                df = pd.DataFrame(csv_data)
         else:
             df = pd.DataFrame.from_dict(results)
         
@@ -184,7 +189,9 @@ class SecopClient:
                     continue
                 
                 # Partition the work for this dataset
-                num_slices = max(1, (limit + SLICE_SIZE - 1) // SLICE_SIZE) if concurrency > 1 else 1
+                # CRITICAL: SODA CSV API with $query ignores 'offset'. We MUST disable slicing for CSV to avoid 4x duplication.
+                is_csv = (content_type == "csv")
+                num_slices = max(1, (limit + SLICE_SIZE - 1) // SLICE_SIZE) if (concurrency > 1 and not is_csv) else 1
                 for i in range(num_slices):
                     current_slice_offset = offset + (i * SLICE_SIZE)
                     current_slice_limit = min(SLICE_SIZE, limit - (i * SLICE_SIZE))
