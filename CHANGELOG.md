@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-04-07
+### Added
+- **SoQL Operator Support**: Search filters now support operators like `>`, `<`, `>=`, `<=`, and `!=` in unified column names.
+- **Improved Timeout**: Increased default timeout to 60s to handle high-volume CSV streams.
+
 ## [1.3.1] - 2026-04-07
 ### Added
 - **Seek-based Pagination Support**: Added `order` parameter to `search()` and `fetch()` to support O(1) high-depth ingestion.

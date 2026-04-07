@@ -14,12 +14,13 @@ import io
 logger = get_logger(__name__)
 
 class SecopClient:
-    def __init__(self, app_token: Optional[str] = None):
+    def __init__(self, app_token: Optional[str] = None, timeout: int = 120):
         """
         Initialize the SecopClient.
         :param app_token: Socrata App Token (optional, but recommended for higher limits)
+        :param timeout: Timeout in seconds for the API requests (default: 60)
         """
-        self.client = Socrata(DEFAULT_DOMAIN, app_token)
+        self.client = Socrata(DEFAULT_DOMAIN, app_token, timeout=timeout)
         self._column_cache: Dict[str, List[str]] = {}
         self._backoff_lock = threading.Lock()
         self._next_request_time = 0.0
@@ -220,8 +221,19 @@ class SecopClient:
                 normalized_list = SmartNormalizer.normalize_list(val, col, config)
                 qb.where_custom(f"{col} in {normalized_list}")
             else:
-                normalized_val = SmartNormalizer.normalize_value(val, col, config)
-                qb.where_custom(f"{col} = {normalized_val}")
+                # Support for operators in filter values (e.g., "> 'date'")
+                op = "="
+                val_to_norm = val
+                operators = [">=", "<=", ">", "<", "!="]
+                for o in operators:
+                    if isinstance(val, str) and val.strip().startswith(o):
+                        op = o
+                        # Strip operator and quotes for normalization
+                        val_to_norm = val.strip()[len(o):].strip().strip("'")
+                        break
+                
+                normalized_val = SmartNormalizer.normalize_value(val_to_norm, col, config)
+                qb.where_custom(f"{col} {op} {normalized_val}")
         
         qb.limit(limit)
         if offset > 0:
