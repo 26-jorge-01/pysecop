@@ -39,8 +39,8 @@ class TestSchemaResilience(unittest.TestCase):
         # Verify that the query sent to Socrata only included available columns
         self.client.client.get.assert_called_once_with(
             "test-id", 
-            query="select col1, col2", 
-            content_type="json"
+            "json", 
+            query="select col1, col2"
         )
         
         # Verify that the resulting DataFrame has all 3 columns

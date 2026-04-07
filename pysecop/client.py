@@ -9,6 +9,7 @@ from .utils.normalizer import SmartNormalizer
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
+import io
 
 logger = get_logger(__name__)
 
@@ -40,7 +41,7 @@ class SecopClient:
             logger.error(f"Error fetching metadata for {dataset_id}: {e}")
             return []
 
-    def fetch(self, dataset_key: str, query: Union[str, QueryBuilder], limit: int = 1000) -> pd.DataFrame:
+    def fetch(self, dataset_key: str, query: Union[str, QueryBuilder], limit: int = 1000, content_type: str = "json") -> pd.DataFrame:
         """
         Fetch data from a specific dataset.
         """
@@ -72,6 +73,11 @@ class SecopClient:
                 soql_query = query.build()
         else:
             soql_query = query
+            # Enforce limit for raw strings if not present to avoid 400 when passing it separately
+            if "limit " not in soql_query.lower():
+                # Add space if needed
+                if not soql_query.strip().endswith(";"):
+                    soql_query = soql_query.strip() + f" limit {limit}"
 
         logger.info(f"Fetching from {config.name} ({config.id})...")
         logger.debug(f"Query: {soql_query}")
@@ -88,7 +94,9 @@ class SecopClient:
                 time.sleep(wait_time)
 
             try:
-                results = self.client.get(config.id, query=soql_query, content_type="json")
+                # SODA 2.0 Rule: If $query is used, no other $ parameters (like $limit) can be specified separately.
+                # By embedding limit/order/etc. into soql_query, we ensure compatibility.
+                results = self.client.get(config.id, content_type, query=soql_query)
                 break
             except Exception as e:
                 is_429 = hasattr(e, 'response') and getattr(e.response, 'status_code', None) == 429
@@ -107,7 +115,16 @@ class SecopClient:
                 else:
                     raise
         
-        df = pd.DataFrame.from_dict(results)
+        if content_type == "csv":
+            # sodapy parses CSV into a list of lists automatically
+            if isinstance(results, list) and len(results) > 0:
+                df = pd.DataFrame(results[1:], columns=results[0])
+            elif isinstance(results, str):
+                df = pd.read_csv(io.StringIO(results))
+            else:
+                df = pd.DataFrame(results)
+        else:
+            df = pd.DataFrame.from_dict(results)
         
         # Ensure all expected columns are present (filled with None/NaN if missing)
         # This makes the package resilient to missing fields by providing a consistent schema
@@ -129,7 +146,7 @@ class SecopClient:
             
         return df
 
-    def search(self, datasets: List[str] = ["SECOP_I", "SECOP_II"], limit: int = 1000, offset: int = 0, resource_type: str = "contracts", concurrency: Optional[int] = None, **kwargs) -> pd.DataFrame:
+    def search(self, datasets: List[str] = ["SECOP_I", "SECOP_II"], limit: int = 1000, offset: int = 0, resource_type: str = "contracts", concurrency: Optional[int] = None, order: Optional[str] = None, content_type: str = "json", **kwargs) -> pd.DataFrame:
         """
         Generalized search across multiple datasets using unified column names.
         Supports high-throughput parallel fetching using internal slicing.
@@ -174,7 +191,7 @@ class SecopClient:
                     if current_slice_limit <= 0:
                         break
                         
-                    future = executor.submit(self._fetch_and_process_slice, dataset_key, config, current_slice_limit, current_slice_offset, resource_type, **kwargs)
+                    future = executor.submit(self._fetch_and_process_slice, dataset_key, config, current_slice_limit, current_slice_offset, resource_type, order=order, content_type=content_type, **kwargs)
                     future_to_task[future] = (dataset_key, current_slice_offset)
 
             for future in as_completed(future_to_task):
@@ -191,7 +208,7 @@ class SecopClient:
             
         return consolidate_dataframes(all_dfs)
 
-    def _fetch_and_process_slice(self, dataset_key: str, config: Any, limit: int, offset: int, resource_type: str, **kwargs) -> pd.DataFrame:
+    def _fetch_and_process_slice(self, dataset_key: str, config: Any, limit: int, offset: int, resource_type: str, order: Optional[str] = None, content_type: str = "json", **kwargs) -> pd.DataFrame:
         """Helper for parallel fetching of slices."""
         qb = QueryBuilder()
         qb.select([]) # Matrix-in-Blocks strategy: fetch all
@@ -209,8 +226,14 @@ class SecopClient:
         qb.limit(limit)
         if offset > 0:
             qb.offset(offset)
+        
+        if order:
+            # We assume order is like "ultima_actualizacion ASC"
+            col_part = order.split(' ')[0]
+            dir_part = order.split(' ')[1] if ' ' in order else "ASC"
+            qb.order(col_part, dir_part)
             
-        df = self.fetch(dataset_key, qb)
+        df = self.fetch(dataset_key, qb, content_type=content_type)
         if not df.empty:
             df = DataProcessor.process_dataset(df, config)
             df['source'] = dataset_key.replace('_', ' ')
