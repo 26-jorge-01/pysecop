@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Dict, List, Any, Optional, Union
-from ..data.config import COLUMN_MAPPING
+from ..data.config import COLUMN_MAPPING, DATASETS
 
 def get_mapped_column(dataset_key: str, unified_name: str, resource_type: str = "contracts") -> str:
     """
@@ -22,11 +22,27 @@ def get_reverse_mapping(dataset_key: str, resource_type: str = "contracts") -> D
 def get_unified_columns(resource_type: str = "contracts") -> List[str]:
     """
     Get all unique unified column names for a given resource type across all datasets.
+    Includes both mapped names and raw names from all datasets to 
+    ensure a complete 'Zero-Loss Sparse Matrix' schema.
+    
+    Original raw names that are mapped to a unified name are excluded to avoid duplication.
     """
     resource_mapping = COLUMN_MAPPING.get(resource_type, {})
     unified_cols = set()
+    mapped_raw_names = set()
+    
+    # 1. Add all unified (mapped) names and track original names that are accounted for
     for dataset_mapping in resource_mapping.values():
         unified_cols.update(dataset_mapping.keys())
+        mapped_raw_names.update(dataset_mapping.values())
+    
+    # 2. Add all raw names from all datasets ONLY if they are not already mapped
+    for dataset in DATASETS.values():
+        if hasattr(dataset, 'columns'):
+            for col in dataset.columns:
+                if col not in mapped_raw_names:
+                    unified_cols.add(col)
+
     return sorted(list(unified_cols))
 
 def normalize_dataframe(df: pd.DataFrame, dataset_key: str, resource_type: str = "contracts") -> pd.DataFrame:
