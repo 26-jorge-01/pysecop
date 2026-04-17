@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-04-17
+### Added
+- **SECOP II Processes Support**: Integrated the SECOP II Processes dataset (`p6dx-8zbt`) into the unified search engine.
+- **Smart Resource Resolution**: Added logic to automatically resolve virtual dataset keys (like `SECOP_II`) to specific physical datasets based on the requested `resource_type`.
+
+### Changed
+- **Mandatory SECOP I Filtering**: Implemented a mandatory, case-insensitive filter (`ADJUDICADO`) for SECOP I when fetching contracts to ensure data integrity.
+- **Improved Dataset Config**: Refined `DatasetConfig` to support categorical and numeric column definitions for processes.
+
+## [1.3.4] - 2026-04-17
+- Internal stability improvements and schema refinements.
+
 ## [1.3.3] - 2026-04-07
 ### Fixed
 - **Parallel Ingestion Redundancy**: Disabled internal slicing for CSV requests. This bypasses a SODA API limitation where offsets are occasionally ignored in complex SoQL `$query` strings, eliminating the 4x data duplication encountered during high-speed syncs.

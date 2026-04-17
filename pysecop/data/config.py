@@ -137,6 +137,34 @@ SECOP_II_CONTRATOS = DatasetConfig(
     ]
 )
 
+# SECOP II Procesos
+SECOP_II_PROCESOS = DatasetConfig(
+    id="p6dx-8zbt",
+    name="SECOP II Procesos",
+    description="Procesos de contratación SECOP II",
+    id_column="id_del_proceso",
+    columns=[
+        "entidad", "nit_entidad", "departamento_entidad", "ciudad_entidad", "ordenentidad",
+        "codigo_pci", "id_del_proceso", "referencia_del_proceso", "ppi", "id_del_portafolio",
+        "nombre_del_procedimiento", "descripci_n_del_procedimiento", "fase",
+        "fecha_de_publicacion", "fecha_de_ultima_publicacion",
+        "fecha_de_recepcion_de_respuestas", "fecha_de_apertura_de_respuesta",
+        "fecha_de_apertura_efectiva", "tipo_de_proceso", "modalidad_de_contratacion",
+        "justific_n_modalidad_de_contrataci_n", "duracion", "unidad_de_duracion",
+        "fecha_de_recepcion_de_observaciones", "fecha_de_entrega_de_notas_de_interes",
+        "fecha_de_entrega_de_procedimiento", "valor_estimado", "valor_estimado_con_iva",
+        "moneda", "orden", "entidad_centralizada", "estado_del_procedimiento"
+    ],
+    date_columns=[
+        "fecha_de_publicacion", "fecha_de_ultima_publicacion",
+        "fecha_de_recepcion_de_respuestas", "fecha_de_apertura_de_respuesta",
+        "fecha_de_apertura_efectiva", "fecha_de_recepcion_de_observaciones",
+        "fecha_de_entrega_de_notas_de_interes", "fecha_de_entrega_de_procedimiento"
+    ],
+    numeric_columns=["valor_estimado", "valor_estimado_con_iva"],
+    categorical_columns=["fase", "tipo_de_proceso", "estado_del_procedimiento", "entidad_centralizada"]
+)
+
 # Unified Column Mapping
 # Unified Column Mapping (Standardized on SECOP II Schema)
 # Every conceptually identical field between SECOP I and II is merged here.
@@ -239,12 +267,41 @@ COLUMN_MAPPING = {
             "rama": "rama",
             "fecha_inicio_liquidacion": "fecha_inicio_liquidacion"
         }
+    },
+    "processes": {
+        "SECOP_I": {
+            "nombre_entidad": "nombre_entidad",
+            "nit_entidad": "nit_de_la_entidad",
+            "departamento": "departamento_entidad",
+            "ciudad": "municipio_entidad",
+            "proceso_de_compra": "numero_de_proceso",
+            "objeto": "objeto_a_contratar",
+            "descripcion": "detalle_del_objeto_a_contratar",
+            "modalidad": "modalidad_de_contratacion",
+            "estado": "estado_del_proceso",
+            "valor": "cuantia_contrato",
+            "ultima_actualizacion": "ultima_actualizacion"
+        },
+        "SECOP_II_PROCESOS": {
+            "nombre_entidad": "entidad",
+            "nit_entidad": "nit_entidad",
+            "departamento": "departamento_entidad",
+            "ciudad": "ciudad_entidad",
+            "proceso_de_compra": "id_del_proceso",
+            "objeto": "nombre_del_procedimiento",
+            "descripcion": "descripci_n_del_procedimiento",
+            "modalidad": "modalidad_de_contratacion",
+            "estado": "estado_del_procedimiento",
+            "valor": "valor_estimado",
+            "ultima_actualizacion": "fecha_de_ultima_publicacion"
+        }
     }
 }
 
 DATASETS = {
     "SECOP_I": SECOP_I_CONTRATOS,
     "SECOP_II": SECOP_II_CONTRATOS,
+    "SECOP_II_PROCESOS": SECOP_II_PROCESOS,
     "TVEC": DatasetConfig(id="rgxm-mmea", name="TVEC", description="Tienda Virtual del Estado Colombiano")
 }
 

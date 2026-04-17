@@ -183,9 +183,14 @@ class SecopClient:
             future_to_task = {}
             
             for dataset_key in datasets:
-                config = DATASETS.get(dataset_key)
+                # Resolve virtual dataset keys like SECOP_II to physical ones based on resource type
+                resolved_key = dataset_key
+                if dataset_key == "SECOP_II" and resource_type == "processes":
+                    resolved_key = "SECOP_II_PROCESOS"
+                
+                config = DATASETS.get(resolved_key)
                 if not config:
-                    logger.warning(f"Dataset {dataset_key} not found in configuration.")
+                    logger.warning(f"Dataset {resolved_key} not found in configuration.")
                     continue
                 
                 # Partition the work for this dataset
@@ -199,8 +204,8 @@ class SecopClient:
                     if current_slice_limit <= 0:
                         break
                         
-                    future = executor.submit(self._fetch_and_process_slice, dataset_key, config, current_slice_limit, current_slice_offset, resource_type, order=order, content_type=content_type, **kwargs)
-                    future_to_task[future] = (dataset_key, current_slice_offset)
+                    future = executor.submit(self._fetch_and_process_slice, resolved_key, config, current_slice_limit, current_slice_offset, resource_type, order=order, content_type=content_type, **kwargs)
+                    future_to_task[future] = (resolved_key, current_slice_offset)
 
             for future in as_completed(future_to_task):
                 dataset_key, slice_offset = future_to_task[future]
@@ -220,6 +225,11 @@ class SecopClient:
         """Helper for parallel fetching of slices."""
         qb = QueryBuilder()
         qb.select([]) # Matrix-in-Blocks strategy: fetch all
+        
+        # Mandatory Filter for SECOP I Contracts: Only 'ADJUDICADO' (Case-Insensitive)
+        # This is required because SECOP I contracts endpoint includes processes in other states.
+        if dataset_key == "SECOP_I" and resource_type == "contracts":
+            qb.where_custom("upper(estado_del_proceso) = 'ADJUDICADO'")
         
         # Map search filters to original names
         filters = get_search_filters(dataset_key, resource_type=resource_type, **kwargs)
