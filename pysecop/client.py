@@ -234,7 +234,8 @@ class SecopClient:
     def _fetch_and_process_slice(self, dataset_key: str, config: Any, limit: int, offset: int, resource_type: str, order: Optional[str] = None, content_type: str = "json", **kwargs) -> pd.DataFrame:
         """Helper for parallel fetching of slices."""
         qb = QueryBuilder()
-        qb.select(["*", ":id"])
+        # Base select: Standard * includes all business columns
+        qb.select(["*"])
         
         # Mandatory Filter for SECOP I Contracts: Only 'ADJUDICADO' (Case-Insensitive)
         # This is required because SECOP I contracts endpoint includes processes in other states.

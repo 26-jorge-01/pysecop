@@ -172,8 +172,6 @@ SECOP_II_PROCESOS = DatasetConfig(
 COLUMN_MAPPING = {
     "contracts": {
         "SECOP_I": {
-            # Core Identifiers
-            "id": ":id",
             "nombre_entidad": "nombre_entidad",
             "nit_entidad": "nit_de_la_entidad",
             "departamento": "departamento_entidad",
@@ -234,7 +232,6 @@ COLUMN_MAPPING = {
         },
         "SECOP_II": {
             # Mostly direct mapping to support the search() engine
-            "id": ":id",
             "nombre_entidad": "nombre_entidad",
             "nit_entidad": "nit_entidad",
             "departamento": "departamento",
