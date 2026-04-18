@@ -40,7 +40,7 @@ class TestSchemaResilience(unittest.TestCase):
         self.client.client.get.assert_called_once_with(
             "test-id", 
             "json", 
-            query="select col1, col2"
+            query="select col1, col2, :id"
         )
         
         # Verify that the resulting DataFrame has all 3 columns

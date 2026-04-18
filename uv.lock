@@ -1105,7 +1105,7 @@ wheels = [
 
 [[package]]
 name = "pysecop"
-version = "1.2.2"
+version = "1.4.2"
 source = { editable = "." }
 dependencies = [
     { name = "numpy" },

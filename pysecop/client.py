@@ -56,7 +56,8 @@ class SecopClient:
             # Check if requested columns are available
             if query._select:
                 requested_cols = query._select
-                valid_cols = [c for c in requested_cols if c in available_cols]
+                # Allow '*' and system columns starting with ':' even if not in metadata
+                valid_cols = [c for c in requested_cols if c in available_cols or c == "*" or c.startswith(":")]
                 missing_cols = set(requested_cols) - set(valid_cols)
                 if missing_cols:
                     logger.warning(f"Fields missing from API in {dataset_key}: {missing_cols}")
@@ -64,14 +65,23 @@ class SecopClient:
                 # Update query to only include available columns
                 # We create a temporary query builder for building the string
                 temp_qb = QueryBuilder()
-                temp_qb._select = valid_cols
+                
+                # Ensure we get all available columns plus :id
+                select_cols = valid_cols or ["*"]
+                if ":id" not in select_cols: select_cols.append(":id")
+                
+                temp_qb.select(select_cols)
                 temp_qb._where = query._where
                 temp_qb._limit = query._limit
                 temp_qb._offset = query._offset
                 temp_qb._order = query._order
                 soql_query = temp_qb.build()
             else:
+                # If no select list is provided, build() uses '*'
+                # We want to ensure :id is also there if it's a default query
                 soql_query = query.build()
+                if "select *" in soql_query.lower() and ":id" not in soql_query.lower():
+                    soql_query = soql_query.replace("select *", "select *, :id")
         else:
             soql_query = query
             # Enforce limit for raw strings if not present to avoid 400 when passing it separately
@@ -224,7 +234,7 @@ class SecopClient:
     def _fetch_and_process_slice(self, dataset_key: str, config: Any, limit: int, offset: int, resource_type: str, order: Optional[str] = None, content_type: str = "json", **kwargs) -> pd.DataFrame:
         """Helper for parallel fetching of slices."""
         qb = QueryBuilder()
-        qb.select([]) # Matrix-in-Blocks strategy: fetch all
+        qb.select(["*", ":id"])
         
         # Mandatory Filter for SECOP I Contracts: Only 'ADJUDICADO' (Case-Insensitive)
         # This is required because SECOP I contracts endpoint includes processes in other states.
