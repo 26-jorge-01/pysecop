@@ -257,10 +257,16 @@ class SecopClient:
             qb.offset(offset)
         
         if order:
-            # We assume order is like "ultima_actualizacion ASC"
-            col_part = order.split(' ')[0]
-            dir_part = order.split(' ')[1] if ' ' in order else "ASC"
-            qb.order(col_part, dir_part)
+            # Handle multiple columns (e.g., "col1 ASC, col2 DESC")
+            order_clauses = [c.strip() for c in order.split(',')]
+            for clause in order_clauses:
+                # Fallback to ASC if no direction is specified
+                parts = clause.split(' ')
+                # Map unified column name to original API field name
+                from .utils.helpers import get_mapped_column
+                col_part = get_mapped_column(dataset_key, parts[0], resource_type=resource_type)
+                dir_part = parts[1] if len(parts) > 1 else "ASC"
+                qb.order(col_part, dir_part)
             
         df = self.fetch(dataset_key, qb, content_type=content_type)
         if not df.empty:

@@ -9,7 +9,7 @@ class QueryBuilder:
         self._where: List[str] = []
         self._limit: Optional[int] = None
         self._offset: Optional[int] = None
-        self._order: Optional[str] = None
+        self._order: List[str] = []
 
     def select(self, columns: List[str]) -> "QueryBuilder":
         self._select.extend(columns)
@@ -35,7 +35,7 @@ class QueryBuilder:
         return self
 
     def order(self, column: str, direction: str = "ASC") -> "QueryBuilder":
-        self._order = f"{column} {direction}"
+        self._order.append(f"{column} {direction}")
         return self
 
     def build(self) -> str:
@@ -51,7 +51,7 @@ class QueryBuilder:
             parts.append(f"where {' AND '.join(self._where)}")
             
         if self._order:
-            parts.append(f"order by {self._order}")
+            parts.append(f"order by {', '.join(self._order)}")
             
         if self._limit:
             parts.append(f"limit {self._limit}")

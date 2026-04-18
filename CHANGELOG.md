@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-04-18
+### Added
+- **Multi-Column Ordering**: Support for multiple sorting criteria in `search()` and `fetch()` using comma-separated strings (e.g., `"ultima_actualizacion DESC, valor_del_contrato ASC"`).
+- **Intelligent Order Mapping**: Unified column names in sort clauses are now automatically mapped to their respective API field names for each dataset.
+
+### Changed
+- **Enhanced QueryBuilder**: Refactored internal order handling to support a list of sorting clauses.
+
+
 ## [1.4.0] - 2026-04-17
 ### Added
 - **SECOP II Processes Support**: Integrated the SECOP II Processes dataset (`p6dx-8zbt`) into the unified search engine.
