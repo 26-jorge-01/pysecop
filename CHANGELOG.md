@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2026-04-18
+### Changed
+- **Version Synchronization**: Synchronized package versioning across `pyproject.toml`, `__init__.py`, and `CHANGELOG.md`.
+- **Internal Refinements**: Finalized the automated `:id` handling logic in `SecopClient` for more robust ingestion.
+
 ## [1.4.2] - 2026-04-18
 ### Added
 - **Exhaustive Ingestion with Granular IDs**: Integration of the Socrata internal ID (`:id`) as a first-class field in both SECOP I and SECOP II datasets for high-precision data capture.
@@ -13,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Zero-Loss Data Capture**: Updated query construction logic to automatically include the `:id` field when using `select *` or custom column lists, preventing data collisions in downstream databases.
 - **Robust SoQL Execution**: Refactored internal `QueryBuilder` integration to ensure system columns are consistently requested across all ingestion strategies (JSON and CSV).
+
 
 ## [1.4.1] - 2026-04-18
 ### Added

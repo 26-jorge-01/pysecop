@@ -2,7 +2,7 @@ from .client import SecopClient
 from .core import QueryBuilder
 from .data import DATASETS, DatasetConfig, DataProcessor, COLUMN_MAPPING
 
-__version__ = "1.4.2"
+__version__ = "1.4.3"
 
 __all__ = [
     "SecopClient",
