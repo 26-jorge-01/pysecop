@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.4] - 2026-04-24
+### Fixed
+- **Schema Leakage Isolation**: Restricted raw column collection in `get_unified_columns` to only datasets relevant to the requested `resource_type`. This prevents process-specific columns from appearing in contract search results.
+- **Deterministic Column Ordering**: Results now automatically sort all columns alphabetically before returning, ensuring a consistent and predictable output regardless of the source dataset.
+
 ## [1.4.3] - 2026-04-18
 ### Changed
 - **Version Synchronization**: Synchronized package versioning across `pyproject.toml`, `__init__.py`, and `CHANGELOG.md`.

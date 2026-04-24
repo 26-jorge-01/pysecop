@@ -36,9 +36,10 @@ def get_unified_columns(resource_type: str = "contracts") -> List[str]:
         unified_cols.update(dataset_mapping.keys())
         mapped_raw_names.update(dataset_mapping.values())
     
-    # 2. Add all raw names from all datasets ONLY if they are not already mapped
-    for dataset in DATASETS.values():
-        if hasattr(dataset, 'columns'):
+    # 2. Add all raw names from ONLY relevant datasets if they are not already mapped
+    for dataset_key in resource_mapping.keys():
+        dataset = DATASETS.get(dataset_key)
+        if dataset and hasattr(dataset, 'columns'):
             for col in dataset.columns:
                 if col not in mapped_raw_names:
                     unified_cols.add(col)
@@ -62,12 +63,15 @@ def normalize_dataframe(df: pd.DataFrame, dataset_key: str, resource_type: str =
     
     df = df.rename(columns=rename_cols)
     
-    # Enforce full unified schema consistency
+    # 2. Enforce full unified schema consistency
     # This prevents Postgres schema mismatch errors during parallel ingestion
     unified_cols = get_unified_columns(resource_type)
     for col in unified_cols:
         if col not in df.columns:
             df[col] = None
+            
+    # 3. Sort columns alphabetically for consistent presentation
+    df = df.reindex(columns=sorted(df.columns))
             
     return df
 
