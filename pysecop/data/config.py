@@ -138,6 +138,11 @@ SECOP_II_CONTRATOS = DatasetConfig(
 )
 
 # SECOP II Procesos
+# NOTE: The live p6dx-8zbt schema renamed/removed several fields.
+# In the current API schema, "fecha_de_publicacion" is the *Manifestacion de Interes*
+# publication date; the general process publication date is "fecha_de_publicacion_del",
+# and "fecha_de_ultima_publicaci" replaced "fecha_de_ultima_publicacion".
+# "valor_estimado"/"valor_estimado_con_iva" were removed in favor of "precio_base".
 SECOP_II_PROCESOS = DatasetConfig(
     id="p6dx-8zbt",
     name="SECOP II Procesos",
@@ -147,22 +152,46 @@ SECOP_II_PROCESOS = DatasetConfig(
         "entidad", "nit_entidad", "departamento_entidad", "ciudad_entidad", "ordenentidad",
         "codigo_pci", "id_del_proceso", "referencia_del_proceso", "ppi", "id_del_portafolio",
         "nombre_del_procedimiento", "descripci_n_del_procedimiento", "fase",
-        "fecha_de_publicacion", "fecha_de_ultima_publicacion",
-        "fecha_de_recepcion_de_respuestas", "fecha_de_apertura_de_respuesta",
-        "fecha_de_apertura_efectiva", "tipo_de_proceso", "modalidad_de_contratacion",
-        "justific_n_modalidad_de_contrataci_n", "duracion", "unidad_de_duracion",
-        "fecha_de_recepcion_de_observaciones", "fecha_de_entrega_de_notas_de_interes",
-        "fecha_de_entrega_de_procedimiento", "valor_estimado", "valor_estimado_con_iva",
-        "moneda", "orden", "entidad_centralizada", "estado_del_procedimiento"
+        "fecha_de_publicacion_del", "fecha_de_ultima_publicaci",
+        "fecha_de_publicacion_fase", "fecha_de_publicacion_fase_1", "fecha_de_publicacion",
+        "fecha_de_publicacion_fase_2", "fecha_de_publicacion_fase_3", "precio_base",
+        "modalidad_de_contratacion", "justificaci_n_modalidad_de", "duracion",
+        "unidad_de_duracion", "fecha_de_recepcion_de", "fecha_de_apertura_de_respuesta",
+        "fecha_de_apertura_efectiva", "ciudad_de_la_unidad_de", "nombre_de_la_unidad_de",
+        "proveedores_invitados", "proveedores_con_invitacion", "visualizaciones_del",
+        "proveedores_que_manifestaron", "respuestas_al_procedimiento", "respuestas_externas",
+        "conteo_de_respuestas_a_ofertas", "proveedores_unicos_con", "numero_de_lotes",
+        "estado_del_procedimiento", "id_estado_del_procedimiento", "adjudicado",
+        "id_adjudicacion", "codigoproveedor", "departamento_proveedor", "ciudad_proveedor",
+        "fecha_adjudicacion", "valor_total_adjudicacion", "nombre_del_adjudicador",
+        "nombre_del_proveedor", "nit_del_proveedor_adjudicado", "codigo_principal_de_categoria",
+        "estado_de_apertura_del_proceso", "tipo_de_contrato", "subtipo_de_contrato",
+        "categorias_adicionales", "urlproceso", "codigo_entidad", "estado_resumen"
     ],
     date_columns=[
-        "fecha_de_publicacion", "fecha_de_ultima_publicacion",
-        "fecha_de_recepcion_de_respuestas", "fecha_de_apertura_de_respuesta",
-        "fecha_de_apertura_efectiva", "fecha_de_recepcion_de_observaciones",
-        "fecha_de_entrega_de_notas_de_interes", "fecha_de_entrega_de_procedimiento"
+        "fecha_de_publicacion_del", "fecha_de_ultima_publicaci",
+        "fecha_de_publicacion_fase", "fecha_de_publicacion_fase_1", "fecha_de_publicacion",
+        "fecha_de_publicacion_fase_2", "fecha_de_publicacion_fase_3",
+        "fecha_de_recepcion_de", "fecha_de_apertura_de_respuesta",
+        "fecha_de_apertura_efectiva", "fecha_adjudicacion"
     ],
-    numeric_columns=["valor_estimado", "valor_estimado_con_iva"],
-    categorical_columns=["fase", "tipo_de_proceso", "estado_del_procedimiento", "entidad_centralizada"]
+    url_columns=["urlproceso"],
+    text_columns=[
+        "nombre_del_procedimiento", "descripci_n_del_procedimiento",
+        "justificaci_n_modalidad_de", "categorias_adicionales"
+    ],
+    numeric_columns=[
+        "precio_base", "duracion", "proveedores_invitados", "proveedores_con_invitacion",
+        "visualizaciones_del", "proveedores_que_manifestaron", "respuestas_al_procedimiento",
+        "respuestas_externas", "conteo_de_respuestas_a_ofertas", "proveedores_unicos_con",
+        "numero_de_lotes", "id_estado_del_procedimiento", "valor_total_adjudicacion",
+        "codigo_entidad"
+    ],
+    categorical_columns=[
+        "fase", "modalidad_de_contratacion", "estado_del_procedimiento",
+        "estado_de_apertura_del_proceso", "estado_resumen", "adjudicado",
+        "tipo_de_contrato", "subtipo_de_contrato", "unidad_de_duracion"
+    ]
 )
 
 # Unified Column Mapping
@@ -291,8 +320,10 @@ COLUMN_MAPPING = {
             "descripcion": "descripci_n_del_procedimiento",
             "modalidad": "modalidad_de_contratacion",
             "estado": "estado_del_procedimiento",
-            "valor": "valor_estimado",
-            "ultima_actualizacion": "fecha_de_ultima_publicacion"
+            # "valor_estimado" was removed from the live schema; "precio_base" is its successor
+            "valor": "precio_base",
+            # Live schema truncated the field name from "fecha_de_ultima_publicacion"
+            "ultima_actualizacion": "fecha_de_ultima_publicaci"
         }
     }
 }
